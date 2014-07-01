@@ -2,8 +2,11 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
     <Identity Id="0798393f-f7b0-4283-a36e-c57a73f031c4" Version="1.0" Language="en-US" Publisher="Mads Kristensen" />
-    <DisplayName>ErrorHighlighter</DisplayName>
+    <DisplayName>Error Highlighter</DisplayName>
     <Description>This is a sample viewport-relative adornment extension to the Visual Studio Editor.</Description>
+    <MoreInfo>https://github.com/madskristensen/ErrorHighlighter/</MoreInfo>
+    <Icon>logo.png</Icon>
+    <PreviewImage>preview.png</PreviewImage>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="12.0" />

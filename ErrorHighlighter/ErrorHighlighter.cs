@@ -29,30 +29,47 @@ namespace ErrorHighlighter
 
             _adornmentLayer = view.GetAdornmentLayer("ErrorHighlighter");
 
-            _view.ViewportHeightChanged += delegate { this.Update(); };
-            _view.ViewportWidthChanged += delegate { this.Update(); };
+            _view.ViewportHeightChanged += SetAdornmentLocation;
+            _view.ViewportWidthChanged += SetAdornmentLocation;
 
             Timer timer = new Timer(500);
             timer.Elapsed += (s, e) =>
             {
                 _dispatcher.Invoke(new Action(() =>
                 {
-                    Update();
+                    Update(false);
                 }), DispatcherPriority.ApplicationIdle, null);
             };
             timer.Start();
         }
 
-        public void Update()
+        void SetAdornmentLocation(object sender, EventArgs e)
         {
-            if (_processing)
+            Canvas.SetLeft(_text, _view.ViewportRight - 130);
+            Canvas.SetTop(_text, _view.ViewportTop + 20);
+        }
+
+        public void Update(bool force)
+        {
+            if (!force && _processing)
                 return;
 
             _processing = true;
 
+            UpdateAdornment(force);
+
+            if (_adornmentLayer.IsEmpty)
+                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, null, _text, null);
+
+            _processing = false;
+        }
+
+        private void UpdateAdornment(bool force)
+        {
             int errors = 0;
             int warnings = 0;
             int messages = 0;
+            bool hasPriority = false;
 
             foreach (IVsTaskItem item in GetErrorListItems())
             {
@@ -66,17 +83,17 @@ namespace ErrorHighlighter
                 if (errorCategory == (uint)__VSERRORCATEGORY.EC_ERROR) errors++;
                 if (errorCategory == (uint)__VSERRORCATEGORY.EC_WARNING) warnings++;
                 if (errorCategory == (uint)__VSERRORCATEGORY.EC_MESSAGE) messages++;
+
+                int priority = item.get_Priority(new[] { VSTASKPRIORITY.TP_HIGH });
+
+                if (priority == 0)
+                    hasPriority = true;
             }
 
-            _text.SetValues(errors, warnings, messages);
+            _text.SetValues(errors, warnings, messages, hasPriority);
 
-            Canvas.SetLeft(_text, _view.ViewportRight - 90);
-            Canvas.SetTop(_text, _view.ViewportTop + 20);
-
-            if (_adornmentLayer.IsEmpty)
-                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, null, _text, null);
-
-            _processing = false;
+            if (force)
+                _text.Blink();
         }
 
         public List<IVsTaskItem> GetErrorListItems()

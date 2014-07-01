@@ -31,16 +31,11 @@ namespace ErrorHighlighter
             if (TextDocumentFactoryService.TryGetTextDocument(textView.TextDataModel.DocumentBuffer, out document))
             {
                 var highlighter = new ErrorHighlighter(textView, document, tasks);
-                //document.FileActionOccurred += (s, e) =>
-                //{
-                //    if (e.FileActionType == FileActionTypes.ContentSavedToDisk)
-                //       highlighter.Check = true;
-                //};
-
-                //textView.TextBuffer.PostChanged += (s, e) =>
-                //{
-                //    highlighter.Check = true;
-                //};
+                document.FileActionOccurred += (s, e) =>
+                {
+                    if (e.FileActionType == FileActionTypes.ContentSavedToDisk)
+                        highlighter.Update(true);
+                };
             }
         }
     }

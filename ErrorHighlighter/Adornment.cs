@@ -2,8 +2,11 @@
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using EnvDTE;
+using EnvDTE80;
 
 namespace ErrorHighlighter
 {
@@ -16,12 +19,15 @@ namespace ErrorHighlighter
 
         public Adornment()
         {
-            this.BorderThickness = new Thickness(5);
-            this.Padding = new Thickness(5);
+            this.BorderThickness = new Thickness(0, 0, 0, 2);
+            this.Padding = new Thickness(0, 0, 0, 3);
             this.Child = _panel;
             _panel.Children.Add(_errors);
             _panel.Children.Add(_warnings);
             _panel.Children.Add(_messages);
+
+            this.Cursor = Cursors.Hand;
+            this.ToolTip = "Click to open the Error List";
         }
 
         public void SetValues(int errors, int warnings, int messages, bool hasPriority)
@@ -41,11 +47,10 @@ namespace ErrorHighlighter
 
         private void SetValue(TextBlock block, int count, string singular, string plural)
         {
-            //block.Opacity = count == 0 ? 0 : 1;
             block.Visibility = count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
             string text = count == 0 ? singular : plural;
-            block.Text = count.ToString().PadLeft(3, ' ') + " " + text;
+            block.Text = count.ToString().PadLeft(3, ' ') + " " + text + " ";
         }
 
         private static TextBlock CreateBlocks(Color color)
@@ -60,17 +65,16 @@ namespace ErrorHighlighter
             };
         }
 
-        public async Task Blink()
+        public async Task Highlight()
         {
             await Dispatcher.CurrentDispatcher.BeginInvoke(new Action(async () =>
             {
                 if (Visibility == System.Windows.Visibility.Visible)
                 {
-                    BorderBrush = Brushes.Red;
-                    Background = Brushes.Yellow;
+                    BorderBrush = new SolidColorBrush(Colors.Red);
+                    BorderBrush.Opacity = .5;
                     await Task.Delay(500);
                     BorderBrush = null;
-                    Background = null;
                 }
 
             }), DispatcherPriority.ApplicationIdle, null);

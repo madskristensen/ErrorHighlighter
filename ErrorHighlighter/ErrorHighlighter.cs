@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
@@ -18,8 +20,9 @@ namespace ErrorHighlighter
         private IVsTaskList _tasks;
         private Dispatcher _dispatcher;
         private bool _processing;
+        private Timer _timer;
 
-        public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks)
+        public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, DTE2 dte)
         {
             _view = view;
             _document = document;
@@ -27,20 +30,22 @@ namespace ErrorHighlighter
             _tasks = tasks;
             _dispatcher = Dispatcher.CurrentDispatcher;
 
-            _adornmentLayer = view.GetAdornmentLayer("ErrorHighlighter");
+            _adornmentLayer = view.GetAdornmentLayer(ErrorHighlighterFactory.LayerName);
 
             _view.ViewportHeightChanged += SetAdornmentLocation;
             _view.ViewportWidthChanged += SetAdornmentLocation;
 
-            Timer timer = new Timer(500);
-            timer.Elapsed += (s, e) =>
+            _text.MouseUp += (s, e) => { dte.ExecuteCommand("View.ErrorList"); };
+
+            _timer = new Timer(500);
+            _timer.Elapsed += (s, e) =>
             {
                 _dispatcher.Invoke(new Action(() =>
                 {
                     Update(false);
                 }), DispatcherPriority.ApplicationIdle, null);
             };
-            timer.Start();
+            _timer.Start();
         }
 
         void SetAdornmentLocation(object sender, EventArgs e)
@@ -49,22 +54,24 @@ namespace ErrorHighlighter
             Canvas.SetTop(_text, _view.ViewportTop + 20);
         }
 
-        public void Update(bool force)
+        public void Update(bool highlight)
         {
-            if (!force && _processing)
+            if (!highlight && _processing)
                 return;
 
+            _timer.Stop();
             _processing = true;
 
-            UpdateAdornment(force);
+            UpdateAdornment(highlight);
 
             if (_adornmentLayer.IsEmpty)
                 _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, null, _text, null);
 
             _processing = false;
+            _timer.Start();
         }
 
-        private void UpdateAdornment(bool force)
+        private async void UpdateAdornment(bool highlight)
         {
             int errors = 0;
             int warnings = 0;
@@ -92,8 +99,8 @@ namespace ErrorHighlighter
 
             _text.SetValues(errors, warnings, messages, hasPriority);
 
-            if (force)
-                _text.Blink();
+            if (highlight)
+                await _text.Highlight();
         }
 
         public List<IVsTaskItem> GetErrorListItems()

@@ -3,7 +3,7 @@
   <Metadata>
     <Identity Id="0798393f-f7b0-4283-a36e-c57a73f031c4" Version="1.0" Language="en-US" Publisher="Mads Kristensen" />
     <DisplayName>Error Watcher</DisplayName>
-    <Description>This is a sample viewport-relative adornment extension to the Visual Studio Editor.</Description>
+    <Description xml:space="preserve">Shows Errors, Warnings and Messages on the top right of the editor</Description>
     <MoreInfo>https://github.com/madskristensen/ErrorHighlighter/</MoreInfo>
     <Icon>logo.png</Icon>
     <PreviewImage>preview.png</PreviewImage>

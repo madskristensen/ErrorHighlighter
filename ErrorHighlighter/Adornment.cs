@@ -49,8 +49,11 @@ namespace ErrorHighlighter
         {
             block.Visibility = count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
-            string text = count == 0 ? singular : plural;
-            block.Text = count.ToString().PadLeft(3, ' ') + " " + text + " ";
+            if (count > 0)
+            {
+                string text = count == 1 ? singular : plural;
+                block.Text = count.ToString().PadLeft(3, ' ') + " " + text + " ";
+            }
         }
 
         private static TextBlock CreateBlocks(Color color)

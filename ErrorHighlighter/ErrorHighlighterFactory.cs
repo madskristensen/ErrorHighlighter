@@ -45,14 +45,10 @@ namespace ErrorHighlighter
                         highlighter.Update(true);
                 };
 
-                // On textbuffer changed
-                textView.TextBuffer.Changed += (s, e) =>
+                Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() =>
                 {
-                    Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() =>
-                    {
-                        highlighter.Update(false);
-                    }), DispatcherPriority.ApplicationIdle, null);
-                };
+                    highlighter.Update(false);
+                }), DispatcherPriority.ApplicationIdle, null);
             }
         }
     }

@@ -44,11 +44,6 @@ namespace ErrorHighlighter
                     if (e.FileActionType == FileActionTypes.ContentSavedToDisk)
                         highlighter.Update(true);
                 };
-
-                Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() =>
-                {
-                    highlighter.Update(false);
-                }), DispatcherPriority.ApplicationIdle, null);
             }
         }
     }

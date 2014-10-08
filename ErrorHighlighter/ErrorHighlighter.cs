@@ -40,6 +40,8 @@ namespace ErrorHighlighter
             _timer = new Timer(500);
             _timer.Elapsed += (s, e) =>
             {
+                _timer.Stop();
+
                 _dispatcher.Invoke(new Action(() =>
                 {
                     Update(false);
@@ -59,7 +61,6 @@ namespace ErrorHighlighter
             if (!highlight && _processing)
                 return;
 
-            _timer.Stop();
             _processing = true;
 
             UpdateAdornment(highlight);

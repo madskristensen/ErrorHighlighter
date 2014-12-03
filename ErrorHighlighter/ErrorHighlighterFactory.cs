@@ -1,6 +1,4 @@
-﻿using System;
-using System.ComponentModel.Composition;
-using System.Windows.Threading;
+﻿using System.ComponentModel.Composition;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;

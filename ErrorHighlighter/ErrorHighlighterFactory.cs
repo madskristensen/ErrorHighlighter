@@ -12,8 +12,8 @@ using Microsoft.VisualStudio.Utilities;
 namespace ErrorHighlighter
 {
     [Export(typeof(IWpfTextViewCreationListener))]
-    [ContentType("text")]
-    [TextViewRole(PredefinedTextViewRoles.Document)]
+    [ContentType("code")]
+    [TextViewRole(PredefinedTextViewRoles.Interactive)]
     internal sealed class ErrorHighlighterFactory : IWpfTextViewCreationListener
     {
         public const string LayerName = "ErrorHighlighter";

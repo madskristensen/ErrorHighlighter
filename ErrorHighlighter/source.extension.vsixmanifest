@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="0798393f-f7b0-4283-a36e-c57a73f031c4" Version="1.4" Language="en-US" Publisher="Mads Kristensen" />
+        <Identity Id="0798393f-f7b0-4283-a36e-c57a73f031c4" Version="1.5" Language="en-US" Publisher="Mads Kristensen" />
         <DisplayName>Error Watcher</DisplayName>
         <Description xml:space="preserve">Shows Errors, Warnings and Messages on the top right of the editor</Description>
         <MoreInfo>https://github.com/madskristensen/ErrorHighlighter/</MoreInfo>

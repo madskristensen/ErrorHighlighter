@@ -96,7 +96,7 @@
     <Content Include="Resources\License.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\logo.png">
+    <Content Include="Resources\icon.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="Resources\preview.png">

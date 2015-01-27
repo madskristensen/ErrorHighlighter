@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -36,15 +37,17 @@ namespace ErrorHighlighter
 
             _text.MouseUp += (s, e) => { dte.ExecuteCommand("View.ErrorList"); };
 
-            _timer = new Timer(500);
+            _timer = new Timer(750);
             _timer.Elapsed += (s, e) =>
             {
                 _timer.Stop();
-
-                _dispatcher.Invoke(new Action(() =>
+                Task.Run(() =>
                 {
-                    Update(false);
-                }), DispatcherPriority.ApplicationIdle, null);
+                    _dispatcher.Invoke(new Action(() =>
+                    {
+                        Update(false);
+                    }), DispatcherPriority.ApplicationIdle, null);
+                });
             };
             _timer.Start();
         }

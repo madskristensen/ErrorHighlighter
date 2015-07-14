@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
@@ -21,13 +23,15 @@ namespace ErrorHighlighter
         private Dispatcher _dispatcher;
         private bool _processing;
         private Timer _timer;
+        private SVsServiceProvider _serviceProvider;
 
-        public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, DTE2 dte)
+        public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, DTE2 dte, SVsServiceProvider serviceProvider)
         {
             _view = view;
             _document = document;
             _text = new Adornment();
             _tasks = tasks;
+            _serviceProvider = serviceProvider;
             _dispatcher = Dispatcher.CurrentDispatcher;
 
             _adornmentLayer = view.GetAdornmentLayer(ErrorHighlighterFactory.LayerName);
@@ -41,7 +45,7 @@ namespace ErrorHighlighter
             _timer.Elapsed += (s, e) =>
             {
                 _timer.Stop();
-                Task.Run(() =>
+                System.Threading.Tasks.Task.Run(() =>
                 {
                     _dispatcher.Invoke(new Action(() =>
                     {
@@ -84,7 +88,8 @@ namespace ErrorHighlighter
             foreach (IVsTaskItem item in GetErrorListItems())
             {
                 string file;
-                if (item.Document(out file) == 0 && file != _document.FilePath)
+                item.Document(out file);
+                if (string.IsNullOrEmpty(file) || file != _document.FilePath)
                     continue;
 
                 IVsErrorItem errorItem = item as IVsErrorItem;
@@ -106,7 +111,7 @@ namespace ErrorHighlighter
                 await _text.Highlight();
         }
 
-        public List<IVsTaskItem> GetErrorListItems()
+        public IEnumerable<IVsTaskItem> GetErrorListItems()
         {
             IVsEnumTaskItems itemsEnum;
             _tasks.EnumTaskItems(out itemsEnum);
@@ -115,7 +120,7 @@ namespace ErrorHighlighter
             List<IVsTaskItem> items = new List<IVsTaskItem>();
             int result = 0; //S_OK == 0, S_FALSE == 1
             do
-            {
+             {
                 result = itemsEnum.Next(1, oneItem, null);
                 if (result == 0)
                 {

@@ -83,7 +83,6 @@ namespace ErrorHighlighter
             int errors = 0;
             int warnings = 0;
             int messages = 0;
-            bool hasPriority = false;
 
             foreach (IVsTaskItem item in GetErrorListItems())
             {
@@ -98,14 +97,9 @@ namespace ErrorHighlighter
                 if (errorCategory == (uint)__VSERRORCATEGORY.EC_ERROR) errors++;
                 if (errorCategory == (uint)__VSERRORCATEGORY.EC_WARNING) warnings++;
                 if (errorCategory == (uint)__VSERRORCATEGORY.EC_MESSAGE) messages++;
-
-                int priority = item.get_Priority(new[] { VSTASKPRIORITY.TP_HIGH });
-
-                if (priority == 0)
-                    hasPriority = true;
             }
 
-            _text.SetValues(errors, warnings, messages, hasPriority);
+            _text.SetValues(errors, warnings, messages);
 
             if (highlight)
                 await _text.Highlight();

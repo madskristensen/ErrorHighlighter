@@ -28,9 +28,9 @@ namespace ErrorHighlighter
             this.ToolTip = "Click to open the Error List";
         }
 
-        public void SetValues(int errors, int warnings, int messages, bool hasPriority)
+        public void SetValues(int errors, int warnings, int messages)
         {
-            if (errors > 0 || hasPriority)
+            if (errors > 0 || warnings > 0 || messages > 0)
             {
                 SetValue(_errors, errors, "error", "errors");
                 SetValue(_warnings, warnings, "warning", "warnings");

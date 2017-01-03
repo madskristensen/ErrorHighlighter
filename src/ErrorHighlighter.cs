@@ -1,217 +1,129 @@
 ﻿using System;
-using System.Threading.Tasks.Dataflow;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Timers;
+using System.Linq;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Threading;
 using EnvDTE80;
-using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
-using static System.Threading.Tasks.TaskExtensions;
-using ThreadingTask = System.Threading.Tasks.Task;
 
 namespace ErrorHighlighter
 {
-	class ErrorHighlighter
-	{
-		private readonly Adornment text;
-		private readonly IWpfTextView view;
-		private readonly IAdornmentLayer adornmentLayer;
-		private readonly ITextDocument document;
-		private readonly IVsTaskList tasks;
-		private readonly Dispatcher dispatcher;
-		private bool processing;
-		private readonly Timer timer;
-		private readonly DTE2 dte;
-		private readonly Action dispatchRunner;
-		private readonly Action update;
+    class ErrorHighlighter
+    {
+        private Adornment _text;
+        private IWpfTextView _view;
+        private IAdornmentLayer _adornmentLayer;
+        private ITextDocument _document;
+        private IVsTaskList _tasks;
+        private Dispatcher _dispatcher;
+        private bool _processing;
+        private Timer _timer;
+        private SVsServiceProvider _serviceProvider;
 
-		public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, DTE2 dte)
-		{
-			this.view = view;
-			this.document = document;
-			text = new Adornment();
-			this.tasks = tasks;
-			dispatcher = Dispatcher.CurrentDispatcher;
-			this.dte = dte;
+        public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, DTE2 dte, SVsServiceProvider serviceProvider)
+        {
+            _view = view;
+            _document = document;
+            _text = new Adornment();
+            _tasks = tasks;
+            _serviceProvider = serviceProvider;
+            _dispatcher = Dispatcher.CurrentDispatcher;
 
-			adornmentLayer = view.GetAdornmentLayer(ErrorHighlighterFactory.LayerName);
+            _adornmentLayer = view.GetAdornmentLayer(ErrorHighlighterFactory.LayerName);
 
-			this.view.ViewportHeightChanged += SetAdornmentLocation;
-			this.view.ViewportWidthChanged += SetAdornmentLocation;
+            _view.ViewportHeightChanged += SetAdornmentLocation;
+            _view.ViewportWidthChanged += SetAdornmentLocation;
 
-			text.MouseUp += text_MouseUp;
+            _text.MouseUp += (s, e) => { dte.ExecuteCommand("View.ErrorList"); };
 
-			dispatchRunner = new Action(DispatchRunner);
-			update = new Action(Update);
+            _timer = new Timer(750);
+            _timer.Elapsed += (s, e) =>
+            {
+                _timer.Stop();
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    _dispatcher.Invoke(new Action(() =>
+                    {
+                        Update(false);
+                    }), DispatcherPriority.ApplicationIdle, null);
+                });
+            };
+            _timer.Start();
+        }
 
-			timer = new Timer(750);
-			timer.Elapsed += timer_Elapsed;
-			timer.Start();
-		}
+        void SetAdornmentLocation(object sender, EventArgs e)
+        {
+            Canvas.SetLeft(_text, _view.ViewportRight - 130);
+            Canvas.SetTop(_text, _view.ViewportTop + 20);
+        }
 
-		private void text_MouseUp(object sender, MouseButtonEventArgs e) => dte.ExecuteCommand("View.ErrorList");
+        public void Update(bool highlight)
+        {
+            if (!highlight && _processing)
+                return;
 
-		private void timer_Elapsed(object sender, ElapsedEventArgs e)
-		{
-			timer.Stop();
-			ThreadingTask.Run(dispatchRunner);
-		}
+            _processing = true;
 
-		private void DispatchRunner() => dispatcher.Invoke(update, DispatcherPriority.ApplicationIdle);
+            UpdateAdornment(highlight);
 
-		private void Update() => Update(false);
+            if (_adornmentLayer.IsEmpty)
+                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, null, _text, null);
 
-		void SetAdornmentLocation(object sender, EventArgs e)
-		{
-			Canvas.SetLeft(text, view.ViewportRight - 130);
-			Canvas.SetTop(text, view.ViewportTop + 20);
-		}
+            _processing = false;
+            _timer.Start();
+        }
 
-		public void Update(bool highlight)
-		{
-			if (!highlight && processing)
-			{
-				return;
-			}
-			processing = true;
+        private async void UpdateAdornment(bool highlight)
+        {
+            int errors = 0;
+            int warnings = 0;
+            int messages = 0;
 
-			UpdateAdornment(highlight);
+            foreach (IVsTaskItem item in GetErrorListItems())
+            {
+                string file;
+                item.Document(out file);
+                if (string.IsNullOrEmpty(file) || file != _document.FilePath)
+                    continue;
 
-			if (adornmentLayer.IsEmpty)
-				adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, null, text, null);
+                IVsErrorItem errorItem = item as IVsErrorItem;
+                uint errorCategory;
+                errorItem.GetCategory(out errorCategory);
+                if (errorCategory == (uint)__VSERRORCATEGORY.EC_ERROR) errors++;
+                if (errorCategory == (uint)__VSERRORCATEGORY.EC_WARNING) warnings++;
+                if (errorCategory == (uint)__VSERRORCATEGORY.EC_MESSAGE) messages++;
+            }
 
-			processing = false;
-			timer.Start();
-		}
+            _text.SetValues(errors, warnings, messages);
 
-		private struct TaskListCount
-		{
-			public int Errors
-			{
-				get;
-			}
+            if (highlight)
+                await _text.Highlight();
+        }
 
-			public int Warnings
-			{
-				get;
-			}
+        public IEnumerable<IVsTaskItem> GetErrorListItems()
+        {
+            IVsEnumTaskItems itemsEnum;
+            _tasks.EnumTaskItems(out itemsEnum);
 
-			public int Messages
-			{
-				get;
-			}
+            IVsTaskItem[] oneItem = new IVsTaskItem[1];
+            List<IVsTaskItem> items = new List<IVsTaskItem>();
+            int result = 0; //S_OK == 0, S_FALSE == 1
+            do
+             {
+                result = itemsEnum.Next(1, oneItem, null);
+                if (result == 0)
+                {
+                    items.Add(oneItem[0]);
+                }
+            } while (result == 0);
 
-			public TaskListCount(int errors, int warnings, int messages)
-			{
-				Errors = errors;
-				Warnings = warnings;
-				Messages = messages;
-			}
-		}
+            return items;
+        }
 
-		private string GetDocumentFilePath() => document.FilePath;
-
-		private class ErrorCategoryClosure
-		{
-			private readonly Dispatcher dispatcher;
-			private readonly Func<uint> getCategoryInner;
-
-			public ErrorCategoryClosure(Dispatcher dispatcher)
-			{
-				this.dispatcher = dispatcher;
-				getCategoryInner = new Func<uint>(GetCategoryInner);
-			}
-
-			public IVsErrorItem ErrorItem
-			{
-				get;
-				set;
-			}
-
-			public async System.Threading.Tasks.Task<__VSERRORCATEGORY> GetCategory()
-			{
-				return (__VSERRORCATEGORY)await dispatcher.InvokeAsync(getCategoryInner, DispatcherPriority.ApplicationIdle);
-			}
-
-			private uint GetCategoryInner()
-			{
-				uint category;
-				ErrorItem.GetCategory(out category);
-				return category;
-			}
-		}
-
-		private async System.Threading.Tasks.Task<TaskListCount> ProcessItems(object state)
-		{
-			BufferBlock<IVsTaskItem> items = (BufferBlock<IVsTaskItem>)state;
-			int localErrors = 0;
-			int localWarnings = 0;
-			int localMessages = 0;
-			string documentFilePath = await dispatcher.InvokeAsync(GetDocumentFilePath, DispatcherPriority.ApplicationIdle);
-			ErrorCategoryClosure errorCategoryClosure = new ErrorCategoryClosure(dispatcher);
-			while (!items.Completion.IsCompleted && items.Count > 0)
-			{
-				IVsTaskItem item = await items.ReceiveAsync();
-				string file;
-				item.Document(out file);
-				if (string.IsNullOrEmpty(file) || !string.Equals(file, documentFilePath, StringComparison.OrdinalIgnoreCase))
-				{
-					continue;
-				}
-
-				IVsErrorItem errorItem = item as IVsErrorItem;
-				errorCategoryClosure.ErrorItem = errorItem;
-				__VSERRORCATEGORY errorCategory = await errorCategoryClosure.GetCategory();
-				switch (errorCategory)
-				{
-					case __VSERRORCATEGORY.EC_ERROR:
-						localErrors++;
-						break;
-					case __VSERRORCATEGORY.EC_WARNING:
-						localWarnings++;
-						break;
-					case __VSERRORCATEGORY.EC_MESSAGE:
-						localMessages++;
-						break;
-				}
-			}
-			return new TaskListCount(localErrors, localWarnings, localMessages);
-		}
-
-		private async void UpdateAdornment(bool highlight)
-		{
-			IVsEnumTaskItems itemsEnum;
-			tasks.EnumTaskItems(out itemsEnum);
-
-			IVsTaskItem[] rgelt = new IVsTaskItem[short.MaxValue];
-			uint[] pceltFetched = new uint[1];
-			int result;
-			BufferBlock<IVsTaskItem> items = new BufferBlock<IVsTaskItem>();
-			System.Threading.Tasks.Task<TaskListCount> task = ThreadingTask.Factory.StartNew(ProcessItems, items).Unwrap();
-			do
-			{
-				result = itemsEnum.Next((uint)rgelt.Length, rgelt, pceltFetched);
-				for (int i = 0; i < pceltFetched[0]; i++)
-				{
-					await items.SendAsync(rgelt[i]);
-				}
-				if (result == VSConstants.S_OK)
-				{
-					await ThreadingTask.Delay(100).ConfigureAwait(true);
-				}
-			} while (result == VSConstants.S_OK);
-			items.Complete();
-			TaskListCount taskListCount = await task.ConfigureAwait(true);
-
-			text.SetValues(taskListCount.Errors, taskListCount.Warnings, taskListCount.Messages);
-
-			if (highlight)
-				await text.Highlight();
-		}
-
-	}
+    }
 }

@@ -34,7 +34,7 @@ namespace ErrorHighlighter
             ITextDocument document;
             if (TextDocumentFactoryService.TryGetTextDocument(textView.TextDataModel.DocumentBuffer, out document))
             {
-                var highlighter = new ErrorHighlighter(textView, document, tasks, dte);
+                var highlighter = new ErrorHighlighter(textView, document, tasks, dte, serviceProvider);
 
                 // On file save
                 document.FileActionOccurred += (s, e) =>

@@ -1,11 +1,9 @@
-﻿using System.ComponentModel.Composition;
-using EnvDTE;
-using EnvDTE80;
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
+using System.ComponentModel.Composition;
 
 namespace ErrorHighlighter
 {
@@ -29,12 +27,11 @@ namespace ErrorHighlighter
         public void TextViewCreated(IWpfTextView textView)
         {
             IVsTaskList tasks = serviceProvider.GetService(typeof(SVsErrorList)) as IVsTaskList;
-            DTE2 dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
 
             ITextDocument document;
             if (TextDocumentFactoryService.TryGetTextDocument(textView.TextDataModel.DocumentBuffer, out document))
             {
-                var highlighter = new ErrorHighlighter(textView, document, tasks, dte, serviceProvider);
+                var highlighter = new ErrorHighlighter(textView, document, tasks, serviceProvider);
 
                 // On file save
                 document.FileActionOccurred += (s, e) =>

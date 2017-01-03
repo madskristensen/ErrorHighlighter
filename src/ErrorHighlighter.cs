@@ -1,19 +1,19 @@
-﻿using System;
+﻿using EnvDTE;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor;
+using System;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using EnvDTE80;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Editor;
 using SVsServiceProvider = Microsoft.VisualStudio.Shell.SVsServiceProvider;
 
 namespace ErrorHighlighter
 {
-	class ErrorHighlighter
+    class ErrorHighlighter
 	{
 		private Adornment _text;
 		private IWpfTextView _view;
@@ -25,7 +25,7 @@ namespace ErrorHighlighter
 		private Timer _timer;
 		private SVsServiceProvider _serviceProvider;
 
-		public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, DTE2 dte, SVsServiceProvider serviceProvider)
+		public ErrorHighlighter(IWpfTextView view, ITextDocument document, IVsTaskList tasks, SVsServiceProvider serviceProvider)
 		{
 			_view = view;
 			_document = document;
@@ -38,6 +38,8 @@ namespace ErrorHighlighter
 
 			_view.ViewportHeightChanged += SetAdornmentLocation;
 			_view.ViewportWidthChanged += SetAdornmentLocation;
+
+            var dte = (DTE)serviceProvider.GetService(typeof(DTE));
 
 			_text.MouseUp += (s, e) => { dte.ExecuteCommand("View.ErrorList"); };
 

@@ -17,15 +17,16 @@ namespace ErrorHighlighter
 
         public Adornment()
         {
-            this.BorderThickness = new Thickness(0, 0, 0, 2);
-            this.Padding = new Thickness(0, 0, 0, 3);
-            this.Child = _panel;
+            BorderThickness = new Thickness(0, 0, 0, 2);
+            Padding = new Thickness(0, 0, 0, 3);
+            Child = _panel;
+
             _panel.Children.Add(_errors);
             _panel.Children.Add(_warnings);
             _panel.Children.Add(_messages);
 
-            this.Cursor = Cursors.Hand;
-            this.ToolTip = "Click to open the Error List";
+            Cursor = Cursors.Hand;
+            ToolTip = "Click to open the Error List";
         }
 
         public void SetValues(int errors, int warnings, int messages)

@@ -8,6 +8,8 @@ This is the home of the Visual Studio extension "Error Watcher".
 Download from the [VS Gallery](http://visualstudiogallery.msdn.microsoft.com/a85f155f-b519-44a8-b56b-07611cf78393)
 or get the [nightly build](http://vsixgallery.com/extension/0798393f-f7b0-4283-a36e-c57a73f031c4/).
 
+**Note**: For a version that works in VS 2015 and newer, get the [Error Catcher II](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.ErrorCatcherII)
+
 Sometimes it can be hard to tell if the file you're editing
 contains errors. Perhaps the error is all the way to the bottom
 of the file and you don't notice it. You might save the file
